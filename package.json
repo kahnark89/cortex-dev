@@ -2,12 +2,21 @@
   "name": "cortex-dev",
   "version": "0.1.0",
   "description": "AI collaboration governance layer — session coherence + comprehension depth",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "bin": {
     "cortex": "./bin/cortex.js"
   },
   "scripts": {
     "build": "tsc",
-    "test": "node --test"
+    "test": "tsc && node --test dist/__tests__/confidence.test.js dist/__tests__/concepts.test.js dist/__tests__/check.test.js",
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "ai",
@@ -22,12 +31,17 @@
     "session-coherence"
   ],
   "author": "Capps Consulting Company LLC",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   },
   "files": [
     "bin/",
+    "dist/",
     "templates/"
-  ]
+  ],
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^22.0.0"
+  }
 }
