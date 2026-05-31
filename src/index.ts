@@ -10,3 +10,6 @@ export { runCheck, formatCheckResult } from './check';
 export type { CheckResult, CheckViolation } from './check';
 
 export { GenomeWatcher } from './watcher';
+
+export { buildContext } from './context';
+export type { CortexContextBundle, AnimusPresence } from './context';

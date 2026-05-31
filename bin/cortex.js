@@ -276,6 +276,12 @@ function concept(filePath) {
   }
 }
 
+function context() {
+  const { buildContext } = loadDist('context');
+  const bundle = buildContext(cwd);
+  console.log(JSON.stringify(bundle, null, 2));
+}
+
 function since(timerange) {
   if (!timerange) {
     console.log('Usage: cortex since <timerange>  (e.g. 7d, 2w, 1m)');
@@ -318,6 +324,7 @@ else if (cmd === 'watch')                      watch();
 else if (cmd === 'check')                      check();
 else if (cmd === 'concept')                    concept(arg);
 else if (cmd === 'since')                      since(arg);
+else if (cmd === 'context')                    context();
 else {
   console.log('cortex-dev CLI\n');
   console.log('Usage:');
@@ -333,4 +340,5 @@ else {
   console.log('  cortex check [--pr <number>]   CI gate — pass/fail based on confidence thresholds');
   console.log('  cortex concept <path>          concept grounding history for a file');
   console.log('  cortex since <timerange>       concepts updated in last N days/weeks/months');
+  console.log('  cortex context                 emit JSON context bundle (genome + comprehension + animus mood)');
 }
