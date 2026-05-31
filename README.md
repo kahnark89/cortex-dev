@@ -2,6 +2,10 @@
 
 > AI collaboration governance layer — session coherence + comprehension depth for AI-assisted development
 
+[![npm version](https://img.shields.io/npm/v/cortex-dev)](https://www.npmjs.com/package/cortex-dev)
+[![license](https://img.shields.io/npm/l/cortex-dev)](./LICENSE)
+[![node](https://img.shields.io/node/v/cortex-dev)](https://nodejs.org)
+
 ---
 
 ## The Problem
@@ -147,6 +151,18 @@ Gutter: green (high), yellow (medium), red (low), orange (shadow forbidden zone)
 | Genome alone | ✓ | ✓ | ✓ | ✗ | ✗ |
 | GroundLine alone | ✗ | ✗ | ✗ | partial | partial |
 | **Cortex** | **✓** | **✓** | **✓** | **✓** | **✓** |
+
+---
+
+## Animus Integration
+
+Use with [animus-sdk](https://www.npmjs.com/package/animus-sdk) to translate comprehension state into persistent agent emotions:
+
+```bash
+cortex context | animus inject --from-cortex
+```
+
+See [INTEGRATION.md](./INTEGRATION.md) for the full guide — data flow, mapping customization, tuning parameters, and CI setup.
 
 ---
 
