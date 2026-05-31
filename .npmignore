@@ -1,0 +1,8 @@
+src/
+src/__tests__/
+dist/__tests__/
+tsconfig*.json
+*.tsbuildinfo
+.git/
+.github/
+examples/
