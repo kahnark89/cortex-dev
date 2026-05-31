@@ -1,0 +1,33 @@
+{
+  "name": "cortex-dev",
+  "version": "0.1.0",
+  "description": "AI collaboration governance layer — session coherence + comprehension depth",
+  "bin": {
+    "cortex": "./bin/cortex.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "governance",
+    "context",
+    "llm",
+    "cursor",
+    "claude",
+    "copilot",
+    "agents-md",
+    "session-coherence"
+  ],
+  "author": "Capps Consulting Company LLC",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "templates/"
+  ]
+}
