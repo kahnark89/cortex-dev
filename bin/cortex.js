@@ -44,9 +44,7 @@ function init() {
   console.log('Initialising Cortex...\n');
 
   const genomeDir  = path.join(cwd, '.genome');
-  const cortexDir  = path.join(cwd, '.cortex');
   ensureDir(genomeDir);
-  ensureDir(cortexDir);
 
   const tmplGenome = path.join(tmpl, '.genome');
   for (const f of fs.readdirSync(tmplGenome)) {
@@ -68,7 +66,6 @@ function init() {
     console.log('  ✓  Created AGENTS.md');
   }
 
-  // If --with-animus flag is set, also run animus init
   if (process.argv.includes('--with-animus')) {
     console.log('\nRunning animus init...\n');
     try {
@@ -85,42 +82,19 @@ function init() {
   console.log('  2. Fill in .genome/10_PHENOTYPE.md — current focus (one sentence)');
   console.log('  3. Fill in .genome/30_SELECTION.md — architect decision heuristics');
   console.log('  4. Run: cortex hook install');
+  console.log('  5. Run: cortex sync              — push genome into Cursor, Copilot, Claude');
 }
 
 function status() {
   const phenotype = readGenome('10_PHENOTYPE.md');
-  if (!phenotype) {
-    console.log('No .genome/ found. Run: cortex init');
-    process.exit(1);
-  }
-  const focusMatch = phenotype.match(/##\s*§1[^\n]*\n([^\n#]+)/);
-  const focus = focusMatch ? focusMatch[1].trim() : '(§1 Current focus not found in PHENOTYPE)';
-  console.log(`Current focus: ${focus}`);
+  if (!phenotype) { console.log('No .genome/ found. Run: cortex init'); process.exit(1); }
 
-  if (arg === '--risk') {
-    const { extractOpenQuestions } = loadDist('concepts');
-    const questions = extractOpenQuestions(phenotype);
-    if (questions.length > 0) {
-      console.log('\nOpen questions (PHENOTYPE §3):');
-      for (const q of questions) {
-        console.log(`  • ${q}`);
-      }
-    } else {
-      console.log('\nNo open questions in PHENOTYPE §3.');
-    }
-
-    const { ConfidenceDB } = loadDist('confidence');
-    const db = new ConfidenceDB(path.join(cwd, '.cortex', 'confidence.json'));
-    const risk = db.getRisk(0.60);
-    const genoRisk = risk.filter(c => c.criticality === 'GENOTYPE');
-    if (genoRisk.length > 0) {
-      console.log(`\nComprehension risk: ${genoRisk.length} GENOTYPE concept(s) below threshold`);
-      console.log('  Run `cortex map --critical` for details');
-    } else {
-      console.log('\nComprehension: all GENOTYPE concepts above threshold ✅');
-    }
-  } else {
-    console.log('\n.cortex/ comprehension map: run `cortex map` for full view');
+  const { extractFocus, extractOpenQuestions } = loadDist('concepts');
+  console.log(`Current focus: ${extractFocus(phenotype)}`);
+  const questions = extractOpenQuestions(phenotype);
+  if (questions.length > 0) {
+    console.log('\nOpen questions:');
+    for (const q of questions) console.log(`  • ${q}`);
   }
 }
 
@@ -142,7 +116,6 @@ function hookInstall() {
     console.log('No .git/hooks directory found. Is this a git repo?');
     process.exit(1);
   }
-  const hookPath = path.join(hooksDir, 'pre-commit');
   const hook = `#!/bin/sh
 # Cortex pre-commit guard
 # GENOTYPE requires GENOTYPE-CHANGE: tag; SELECTION requires SELECTION-CHANGE: tag.
@@ -165,150 +138,83 @@ check_protected() {
 check_protected ".genome/00_GENOTYPE.md" "GENOTYPE-CHANGE"
 check_protected ".genome/30_SELECTION.md" "SELECTION-CHANGE"
 `;
-  fs.writeFileSync(hookPath, hook, { mode: 0o755 });
+  fs.writeFileSync(path.join(hooksDir, 'pre-commit'), hook, { mode: 0o755 });
   console.log('✓  Cortex pre-commit hook installed at .git/hooks/pre-commit');
 }
 
-function map() {
-  const { ConfidenceDB } = loadDist('confidence');
-  const db = new ConfidenceDB(path.join(cwd, '.cortex', 'confidence.json'));
-  const store = db.load();
+function audit() {
+  const { runAudit } = loadDist('audit');
+  const result = runAudit(cwd);
 
-  if (store.concepts.length === 0) {
-    console.log('Cortex comprehension map');
-    console.log('─────────────────────────────────────────────');
-    console.log('No concepts tracked yet.');
-    console.log('Run `cortex watch` to start accumulating concept confidence.');
+  console.log('cortex audit');
+  console.log('─────────────────────────────────────────────');
+  for (const item of result.items) {
+    const icon = item.level === 'pass' ? '  ✅' : item.level === 'warn' ? '  ⚠ ' : '  🔴';
+    console.log(`${icon}  ${item.message}`);
+  }
+  console.log('─────────────────────────────────────────────');
+  const healthIcon = result.health === 'green' ? '✅' : result.health === 'yellow' ? '⚠ ' : '🔴';
+  console.log(`Genome health: ${healthIcon} ${result.health}`);
+
+  if (result.health !== 'green') process.exitCode = 1;
+}
+
+function syncCmd() {
+  const { syncGenome } = loadDist('sync');
+  const result = syncGenome(cwd);
+
+  for (const t of result.targets) {
+    if (t.written)  console.log(`  ✓  ${t.file}`);
+    if (t.skipped)  console.log(`  ⚠  ${t.file} — ${t.reason}`);
+  }
+
+  const written = result.targets.filter((t) => t.written).length;
+  console.log(`\n${written} file${written === 1 ? '' : 's'} written. AI tools will now reflect your genome.`);
+}
+
+function harvest() {
+  const apply = process.argv.includes('--apply');
+  const sinceIdx = process.argv.indexOf('--since');
+  const since = sinceIdx !== -1
+    ? process.argv[sinceIdx + 1] || '30d'
+    : (arg && arg !== '--apply' ? arg : '30d');
+
+  const { runHarvest } = loadDist('harvest');
+  const result = runHarvest(cwd, since, apply);
+
+  if (result.entries.length === 0) {
+    console.log(`No decision commits found in the last ${since}.`);
+    console.log('Tip: prefix commit messages with DECISION:, ADR:, ARCH:, or WHY: to mark decisions.');
     return;
   }
 
-  const policy = getPolicy();
-  const criticalOnly = arg === '--critical';
-
-  console.log('Cortex comprehension map');
-  console.log('─────────────────────────────────────────────');
-
-  const groups = [
-    { label: `GENOTYPE concepts (block < ${policy.genotype}):`, filter: c => c.criticality === 'GENOTYPE' },
-  ];
-  if (!criticalOnly) {
-    groups.push({ label: `SELECTION concepts (review < ${policy.selection}):`, filter: c => c.criticality === 'SELECTION' });
-    groups.push({ label: `Neutral concepts (flag < ${policy.neutral}):`, filter: c => c.criticality === 'neutral' });
+  if (apply) {
+    console.log(`Appended ${result.entries.length} entr${result.entries.length === 1 ? 'y' : 'ies'} to 20_EPIGENOME.md:`);
+  } else {
+    console.log(`Found ${result.entries.length} commit${result.entries.length === 1 ? '' : 's'} worth logging (last ${since}):\n`);
   }
 
-  for (const group of groups) {
-    const concepts = store.concepts.filter(group.filter).sort((a, b) => a.score - b.score);
-    if (concepts.length === 0) continue;
-
-    console.log('\n' + group.label);
-    for (const c of concepts) {
-      const bar = buildBar(c.score);
-      const status = c.criticality === 'SHADOW'
-        ? '🚫 BLOCKED'
-        : c.score < (group.label.includes('GENOTYPE') ? policy.genotype : group.label.includes('SELECTION') ? policy.selection : policy.neutral)
-          ? (group.label.includes('GENOTYPE') ? '🔴 BLOCK' : '⚠')
-          : '✅';
-      const label = c.concept.padEnd(24).slice(0, 24);
-      console.log(`  ${label}  ${c.score.toFixed(2)}  ${bar}  ${c.applications} apps  ${status}`);
-    }
+  for (const e of result.entries) {
+    console.log(`  [${e.hash}]  ${e.date}  ${e.subject}`);
+    if (e.body) console.log(`              ${e.body.split('\n')[0]}`);
   }
 
-  console.log('\n─────────────────────────────────────────────');
-  console.log(`Last updated: ${new Date(store.updated).toLocaleString()}`);
-}
-
-function buildBar(score) {
-  const filled = Math.round(score * 10);
-  return '█'.repeat(filled) + '░'.repeat(10 - filled);
-}
-
-function getPolicy() {
-  const selectionMd = readGenome('30_SELECTION.md') || '';
-  try {
-    const { extractPolicy } = loadDist('concepts');
-    return extractPolicy(selectionMd);
-  } catch (_) {
-    return { genotype: 0.60, selection: 0.50, neutral: 0.75 };
+  if (!apply) {
+    console.log(`\nRun with --apply to append these to 20_EPIGENOME.md`);
   }
-}
-
-function watch() {
-  const { GenomeWatcher } = loadDist('watcher');
-  const watcher = new GenomeWatcher(
-    path.join(cwd, '.genome'),
-    path.join(cwd, '.cortex')
-  );
-  watcher.start();
 }
 
 function check() {
-  const prNum = arg ? parseInt(arg, 10) : undefined;
   const { runCheck, formatCheckResult } = loadDist('check');
-  const result = runCheck(cwd, prNum);
+  const result = runCheck(cwd);
   console.log(formatCheckResult(result));
   if (result.status === 'fail') process.exitCode = 1;
-}
-
-function concept(filePath) {
-  if (!filePath) {
-    console.log('Usage: cortex concept <path>');
-    process.exit(1);
-  }
-  const { ConfidenceDB } = loadDist('confidence');
-  const db = new ConfidenceDB(path.join(cwd, '.cortex', 'confidence.json'));
-  const store = db.load();
-
-  const basename = path.basename(filePath);
-  const matches = store.concepts.filter(c =>
-    c.file === filePath || c.file === basename || filePath.endsWith(c.file)
-  );
-
-  if (matches.length === 0) {
-    console.log(`No tracked concepts for: ${filePath}`);
-    return;
-  }
-
-  console.log(`Concepts from ${filePath}:`);
-  for (const c of matches.sort((a, b) => b.score - a.score)) {
-    const bar = buildBar(c.score);
-    console.log(`  ${c.concept.padEnd(30).slice(0, 30)}  ${c.score.toFixed(2)}  ${bar}  [${c.criticality}]`);
-  }
 }
 
 function context() {
   const { buildContext } = loadDist('context');
   const bundle = buildContext(cwd);
   console.log(JSON.stringify(bundle, null, 2));
-}
-
-function since(timerange) {
-  if (!timerange) {
-    console.log('Usage: cortex since <timerange>  (e.g. 7d, 2w, 1m)');
-    process.exit(1);
-  }
-  const match = timerange.match(/^(\d+)(d|w|m)$/);
-  if (!match) {
-    console.log('Invalid timerange. Use format: 7d, 2w, 1m');
-    process.exit(1);
-  }
-  const [, num, unit] = match;
-  const msMap = { d: 864e5, w: 6048e5, m: 2592e6 };
-  const cutoff = Date.now() - parseInt(num, 10) * msMap[unit];
-
-  const { ConfidenceDB } = loadDist('confidence');
-  const db = new ConfidenceDB(path.join(cwd, '.cortex', 'confidence.json'));
-  const recent = db.load().concepts.filter(c => c.lastSeen >= cutoff);
-
-  if (recent.length === 0) {
-    console.log(`No concepts updated in the last ${timerange}.`);
-    return;
-  }
-
-  console.log(`Concepts updated in the last ${timerange}:`);
-  for (const c of recent.sort((a, b) => b.lastSeen - a.lastSeen)) {
-    const ts = new Date(c.lastSeen).toLocaleDateString();
-    console.log(`  ${c.concept.padEnd(30).slice(0, 30)}  ${c.score.toFixed(2)}  [${c.criticality}]  ${ts}`);
-  }
 }
 
 // ── dispatch ───────────────────────────────────────────────────────────────
@@ -318,26 +224,23 @@ else if (cmd === 'status')                     status();
 else if (cmd === 'log')                        log();
 else if (cmd === 'shadow')                     shadow();
 else if (cmd === 'hook' && arg === 'install')  hookInstall();
-else if (cmd === 'map')                        map();
-else if (cmd === 'watch')                      watch();
+else if (cmd === 'audit')                      audit();
+else if (cmd === 'sync')                       syncCmd();
+else if (cmd === 'harvest')                    harvest();
 else if (cmd === 'check')                      check();
-else if (cmd === 'concept')                    concept(arg);
-else if (cmd === 'since')                      since(arg);
 else if (cmd === 'context')                    context();
 else {
   console.log('cortex-dev CLI\n');
   console.log('Usage:');
-  console.log('  cortex init [--with-animus]   bootstrap .genome/ + .cortex/ in current project');
+  console.log('  cortex init [--with-animus]   bootstrap .genome/ in current project');
   console.log('  cortex hook install            install pre-commit guard');
-  console.log('  cortex status                  phenotype focus');
-  console.log('  cortex status --risk           open questions + comprehension risk summary');
+  console.log('  cortex status                  current focus + open questions');
+  console.log('  cortex audit                   genome health check (staleness, completeness)');
+  console.log('  cortex sync                    push genome into CLAUDE.md, .cursorrules, copilot-instructions');
+  console.log('  cortex harvest [--since <range>] [--apply]');
+  console.log('                                 find decision commits and optionally append to EPIGENOME');
+  console.log('  cortex check                   CI gate — pass/fail on governance checks');
   console.log('  cortex log                     epigenome (decision history)');
-  console.log('  cortex shadow                  rejected paths + forbidden zone alerts');
-  console.log('  cortex map                     full comprehension map');
-  console.log('  cortex map --critical          GENOTYPE-class concepts only');
-  console.log('  cortex watch                   watch .genome/ and accumulate concept confidence');
-  console.log('  cortex check [--pr <number>]   CI gate — pass/fail based on confidence thresholds');
-  console.log('  cortex concept <path>          concept grounding history for a file');
-  console.log('  cortex since <timerange>       concepts updated in last N days/weeks/months');
-  console.log('  cortex context                 emit JSON context bundle (genome + comprehension + animus mood)');
+  console.log('  cortex shadow                  rejected paths');
+  console.log('  cortex context                 emit JSON context bundle (stdout)');
 }

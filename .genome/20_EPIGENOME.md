@@ -102,3 +102,11 @@
 **Rationale:** SHADOW blocking is fully handled by the `case 'SHADOW':` branch in the main concept loop — any SHADOW-criticality entry in the confidence store unconditionally pushes an error violation. The secondary block added after the loop was a no-op (empty body with a comment "Already added above") and imported dead surface area from `concepts.ts`. Removing it makes the invariant ("SHADOW always blocks") easier to see and audit in a single place.
 
 **Author:** claude/project-onboarding-XAXWx
+
+## [2026-06-01] v0.2 pivot: replace GroundLine with sync/audit/harvest
+
+**Decision:** Removed the GroundLine confidence scoring subsystem (`confidence.ts`, `watcher.ts`, `cortex watch`, `cortex map`, `cortex since`, `cortex concept`, `cortex check` confidence gate). Replaced with three commands targeting the actual developer pain point: `cortex sync` (push genome into CLAUDE.md / .cursorrules / copilot-instructions.md), `cortex audit` (staleness and completeness checks), `cortex harvest` (pull decision commits from git into EPIGENOME). `cortex check` now gates on governance (genome filled in, not stale) rather than GroundLine confidence scores. `CortexContextBundle` bumped to version 2 with `audit` field replacing `comprehension`.
+
+**Rationale:** GroundLine scored proxy signals (file edit frequency) rather than actual AI comprehension. Scores started at ~0.11 on a fresh project and required sustained background watcher activity to climb above the 0.60 GENOTYPE threshold — creating immediate false-positive CI failures and a friction wall before any value was delivered. The sync/audit/harvest model is tool-integrated (outputs land where AI tools already look), maintenance-light (works as a side-effect of normal git workflow), and immediately useful (a freshly-synced project gives every AI session current context from the first run).
+
+**Author:** claude/project-onboarding-XAXWx (user-directed pivot, 2026-06-01)

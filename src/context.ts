@@ -2,8 +2,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { ConfidenceDB, ConceptEntry } from './confidence';
-import { extractOpenQuestions, extractPolicy } from './concepts';
+import { runAudit, AuditItem } from './audit';
+import { extractFocus, extractOpenQuestions } from './concepts';
 
 export interface AnimusPresence {
   present: boolean;
@@ -12,7 +12,7 @@ export interface AnimusPresence {
 }
 
 export interface CortexContextBundle {
-  version: 1;
+  version: 2;
   generatedAt: number;
   genome: {
     focus: string;
@@ -22,18 +22,15 @@ export interface CortexContextBundle {
     hasShadow: boolean;
     hasSelection: boolean;
   };
-  comprehension: {
-    riskConcepts: ConceptEntry[];
-    criticalConcepts: ConceptEntry[];
-    totalConcepts: number;
-    overallHealth: 'green' | 'yellow' | 'red';
+  audit: {
+    health: 'green' | 'yellow' | 'red';
+    items: AuditItem[];
   };
   animus: AnimusPresence;
 }
 
 export function buildContext(cwd: string): CortexContextBundle {
   const genomeDir = path.join(cwd, '.genome');
-  const cortexDir = path.join(cwd, '.cortex');
 
   const phenotypePath  = path.join(genomeDir, '10_PHENOTYPE.md');
   const genotypePath   = path.join(genomeDir, '00_GENOTYPE.md');
@@ -41,50 +38,26 @@ export function buildContext(cwd: string): CortexContextBundle {
   const shadowPath     = path.join(genomeDir, '40_SHADOW.md');
   const selectionPath  = path.join(genomeDir, '30_SELECTION.md');
 
-  const phenotypeMd  = fs.existsSync(phenotypePath)  ? fs.readFileSync(phenotypePath, 'utf8')  : '';
-  const selectionMd  = fs.existsSync(selectionPath)  ? fs.readFileSync(selectionPath, 'utf8')  : '';
+  const phenotypeMd = fs.existsSync(phenotypePath) ? fs.readFileSync(phenotypePath, 'utf8') : '';
 
-  const focusMatch = phenotypeMd.match(/##\s*§1[^\n]*\n([^\n#]+)/);
-  const focus = focusMatch ? focusMatch[1].trim() : '(no focus set)';
-  const openQuestions = extractOpenQuestions(phenotypeMd);
+  const focus = extractFocus(phenotypeMd);
 
-  const db = new ConfidenceDB(path.join(cortexDir, 'confidence.json'));
-  const store = db.load();
-  const policy = extractPolicy(selectionMd);
-
-  const riskConcepts = store.concepts.filter(
-    (c) => c.criticality !== 'SHADOW' && (
-      (c.criticality === 'GENOTYPE'  && c.score < policy.genotype)  ||
-      (c.criticality === 'SELECTION' && c.score < policy.selection) ||
-      (c.criticality === 'neutral'   && c.score < policy.neutral)
-    )
-  );
-  const criticalConcepts = store.concepts.filter((c) => c.criticality === 'GENOTYPE');
-  const shadowViolations = store.concepts.filter((c) => c.criticality === 'SHADOW');
-
-  let overallHealth: 'green' | 'yellow' | 'red' = 'green';
-  if (shadowViolations.length > 0 || riskConcepts.some((c) => c.criticality === 'GENOTYPE')) {
-    overallHealth = 'red';
-  } else if (riskConcepts.length > 0) {
-    overallHealth = 'yellow';
-  }
+  const audit = runAudit(cwd);
 
   return {
-    version: 1,
+    version: 2,
     generatedAt: Date.now(),
     genome: {
       focus,
-      openQuestions,
+      openQuestions: extractOpenQuestions(phenotypeMd),
       hasGenotype:  fs.existsSync(genotypePath),
       hasEpigenome: fs.existsSync(epigenomePath),
       hasShadow:    fs.existsSync(shadowPath),
       hasSelection: fs.existsSync(selectionPath),
     },
-    comprehension: {
-      riskConcepts,
-      criticalConcepts,
-      totalConcepts: store.concepts.length,
-      overallHealth,
+    audit: {
+      health: audit.health,
+      items:  audit.items,
     },
     animus: detectAnimus(cwd),
   };
@@ -94,11 +67,10 @@ function detectAnimus(cwd: string): AnimusPresence {
   const schemaPath = path.join(cwd, 'animus', 'agent.schema.json');
   if (!fs.existsSync(schemaPath)) return { present: false };
 
-  const schemaRaw = fs.readFileSync(schemaPath, 'utf8');
-  const schemaName: string = JSON.parse(schemaRaw).name ?? '(unnamed)';
+  const schemaRaw  = fs.readFileSync(schemaPath, 'utf8');
+  const schemaName = (JSON.parse(schemaRaw).name as string) ?? '(unnamed)';
 
   try {
-    // Graceful degradation: require animus-sdk if available, never hard-fail without it
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Animus } = require('animus-sdk') as { Animus: new (c: unknown) => { compile(): string } };
     const memPath = path.join(cwd, 'animus', 'agent.memory.json');
