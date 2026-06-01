@@ -8,7 +8,7 @@
 
 ## §1 Current focus
 
-v0.2 pivot complete: GroundLine removed, replaced with `sync`, `audit`, `harvest`. Ready for npm publish and real-world validation.
+Session governance implemented: `cortex seal`, `cortex verify` (hash chain + seal diff), and `cortex close` (bidirectional drift detection + badge). Core feature set complete; ready for npm publish and real-world dog-fooding.
 
 ---
 
@@ -20,10 +20,12 @@ v0.2 pivot complete: GroundLine removed, replaced with `sync`, `audit`, `harvest
 - [x] `src/check.ts` — governance gate (audit-backed, no GroundLine dependency)
 - [x] `src/context.ts` — `CortexContextBundle` v2 (genome + audit health, no comprehension field)
 - [x] `src/concepts.ts` — `extractFocus`, `extractOpenQuestions`, `extractShadowEntries`, `extractSection`
-- [x] 31 tests passing (`npm test`)
-- [x] `npm run build` produces clean `dist/`
-- [x] `bin/cortex.js` — commands: `init`, `hook install`, `status`, `audit`, `sync`, `harvest`, `check`, `log`, `shadow`, `context`
+- [x] `src/verify.ts` — EPIGENOME hash chain + genome seal (`cortex seal`, `cortex verify`)
+- [x] `src/session.ts` — `cortex close`: PHENOTYPE freshness, bidirectional drift detection, chain integrity, badge
+- [x] `bin/cortex.js` — commands: `init`, `hook install`, `status`, `audit`, `sync`, `harvest`, `seal`, `verify`, `close`, `check`, `log`, `shadow`, `context`
+- [x] `templates/AGENTS.md` — session-start + mandatory session-close protocol
 - [x] `package.json` test script cleans `.dist-test/` before compile
+- [ ] Tests passing (`npm test` — session.test.ts added)
 - [ ] `npm publish` — package live on npmjs.com as `cortex-dev`
 - [ ] Smoke test: `npm install -g cortex-dev` in throwaway dir
 

@@ -19,3 +19,6 @@ export type { CortexContextBundle, AnimusPresence } from './context';
 
 export { runVerify, sealGenome, readLastSeal, lastChainHash, hashEntryFields, verifyChain, sha256, GENESIS_HASH } from './verify';
 export type { VerifyResult, ChainBreak, SealRecord, SealDiff, SealFileEntry } from './verify';
+
+export { runClose } from './session';
+export type { CloseResult, GateResult, BadgeRecord } from './session';

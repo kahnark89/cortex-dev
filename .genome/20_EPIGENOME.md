@@ -110,3 +110,33 @@
 **Rationale:** GroundLine scored proxy signals (file edit frequency) rather than actual AI comprehension. Scores started at ~0.11 on a fresh project and required sustained background watcher activity to climb above the 0.60 GENOTYPE threshold — creating immediate false-positive CI failures and a friction wall before any value was delivered. The sync/audit/harvest model is tool-integrated (outputs land where AI tools already look), maintenance-light (works as a side-effect of normal git workflow), and immediately useful (a freshly-synced project gives every AI session current context from the first run).
 
 **Author:** claude/project-onboarding-XAXWx (user-directed pivot, 2026-06-01)
+
+---
+
+## [2026-06-01] EPIGENOME hash chaining for tamper-evidence
+
+**Decision:** Each entry appended by `cortex harvest --apply` now embeds two fields in its blockquote line: `Prev-hash: sha256:<hex>` (the stored hash of the previous entry, or the genesis hash for the first entry) and `Hash: sha256:<hex>` (computed as SHA-256 of the null-delimited canonical fields: prevHash, id, subject, commitHash, date). `cortex verify` re-derives each hash and flags any mismatch as a chain break.
+
+**Rationale:** An AI session that silently rewrites EPIGENOME history (e.g., removing a decision it disagrees with, or inflating its own contribution) would break the chain at that entry. The chain gives the next session — and the architect — a cryptographic signal that something was tampered with, rather than requiring manual diffing of every entry. This is the core blockchain principle applied locally: immutability through linked hashes, with no network required.
+
+**Author:** claude/project-onboarding-XAXWx (blockchain session, 2026-06-01)
+
+---
+
+## [2026-06-01] Genome seal as session boundary fingerprint
+
+**Decision:** `cortex seal` computes SHA-256 of each genome file, combines them into a simplified Merkle root (SHA-256 of sorted `file:hash` pairs), and appends the record to `.cortex/seals.jsonl` as a single JSON line. `cortex verify` compares the current file hashes against the last seal record and classifies changes: GENOTYPE/SELECTION modifications = `suspicious` (red), EPIGENOME/SHADOW growth = `appended`, PHENOTYPE changes = `modified` (expected churn).
+
+**Rationale:** Session-to-session tamper detection without a distributed network. Appending to an immutable JSONL file means the seal history is itself append-only — past seals cannot be silently removed without shortening the file, which is detectable. The per-file classification avoids false alarms on expected churn (PHENOTYPE updates, EPIGENOME growth) while catching unauthorized edits to protected invariants. Zero runtime dependencies: Node.js `crypto.createHash('sha256')` only.
+
+**Author:** claude/project-onboarding-XAXWx (blockchain session, 2026-06-01)
+
+---
+
+## [2026-06-01] cortex close: session-end gate with bidirectional drift detection
+
+**Decision:** `cortex close` enforces four gates before sealing the session and issuing a `.cortex/badge.json` (shields.io format) + `.cortex/badge.svg`: (1) PHENOTYPE updated since last seal; (2a) if code files changed since last seal, EPIGENOME must have new entries; (2b) if EPIGENOME has new entries, code must also have changed — preventing false genome claims; (3) EPIGENOME chain integrity; (4) no suspicious protected-file changes. `--check` mode (used by the pre-commit hook) runs only gates 3 and 4 without sealing, so mid-session commits aren't blocked.
+
+**Rationale:** The blockchain session itself proved the gap: it ended without updating PHENOTYPE or EPIGENOME, leaving the next session with stale genome state. Gate (2b) catches the inverse problem: an AI session that writes optimistic EPIGENOME entries claiming work is done without backing code. Both directions of drift cause the same failure mode — a future session starts with a false picture of the codebase. The badge gives the project a machine-readable signal of session governance health that can be displayed in a README.
+
+**Author:** claude/project-onboarding-XAXWx (session-gate session, 2026-06-01)
