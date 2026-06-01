@@ -35,7 +35,7 @@ At the start of each session, state the current focus from PHENOTYPE §1 back to
 Before ending a session, run:
 
 ```
-cortex close
+npx cortex-dev close
 ```
 
 This enforces four gates automatically:
@@ -45,6 +45,6 @@ This enforces four gates automatically:
 3. **Genome → code drift** — if EPIGENOME has new entries, code must have changed to back them up (prevents false claims that mislead future sessions)
 4. **Chain integrity** — EPIGENOME hash chain must be intact; no protected files changed without proper tags
 
-**If any gate fails, fix what it describes and re-run `cortex close`.** Do not end the session until it exits 0. On pass, it automatically seals the genome and writes `.cortex/badge.json`.
+**If any gate fails, fix what it describes and re-run `npx cortex-dev close`.** Do not end the session until it exits 0. On pass, it automatically seals the genome and writes `.cortex/badge.json`.
 
-The pre-commit hook (installed by `cortex hook install`) also runs gates 3 and 4 on every commit via `cortex close --check`.
+The pre-commit hook (installed by `npx cortex-dev hook install`) also runs gates 3 and 4 on every commit automatically.
