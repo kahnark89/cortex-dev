@@ -25,8 +25,8 @@ export class GenomeWatcher {
     console.log(`Cortex: watching ${this.genomeDir} for changes...`);
     console.log('Press Ctrl+C to stop.\n');
 
-    this.watcher = fs.watch(this.genomeDir, { recursive: false }, (_event, filename) => {
-      if (!filename || !filename.endsWith('.md')) return;
+    this.watcher = fs.watch(this.genomeDir, { recursive: false }, (_event: string, filename: string | Buffer | null) => {
+      if (!filename || typeof filename !== 'string' || !filename.endsWith('.md')) return;
       this.onFileChange(filename);
     });
   }
