@@ -145,20 +145,25 @@ function hookInstall() {
   const hookPath = path.join(hooksDir, 'pre-commit');
   const hook = `#!/bin/sh
 # Cortex pre-commit guard
-# Blocks modifications to GENOTYPE or SELECTION without a GENOTYPE-CHANGE tag in the commit message.
-PROTECTED=".genome/00_GENOTYPE.md .genome/30_SELECTION.md"
+# GENOTYPE requires GENOTYPE-CHANGE: tag; SELECTION requires SELECTION-CHANGE: tag.
 MSG_FILE=".git/COMMIT_EDITMSG"
-for f in $PROTECTED; do
-  if git diff --cached --name-only | grep -q "$f"; then
-    if [ -f "$MSG_FILE" ] && grep -q "GENOTYPE-CHANGE" "$MSG_FILE"; then
-      echo "Cortex: GENOTYPE-CHANGE tag found — allowing protected file modification."
+
+check_protected() {
+  FILE="$1"
+  TAG="$2"
+  if git diff --cached --name-only | grep -q "$FILE"; then
+    if [ -f "$MSG_FILE" ] && grep -q "$TAG" "$MSG_FILE"; then
+      echo "Cortex: $TAG found — allowing modification of $FILE."
     else
-      echo "Cortex: Protected file $f modified without GENOTYPE-CHANGE tag in commit message."
-      echo "  Add 'GENOTYPE-CHANGE: <reason>' to your commit message, or unstage $f."
+      echo "Cortex: Protected file $FILE modified without $TAG in commit message."
+      echo "  Add '$TAG: <reason>' to your commit message, or unstage $FILE."
       exit 1
     fi
   fi
-done
+}
+
+check_protected ".genome/00_GENOTYPE.md" "GENOTYPE-CHANGE"
+check_protected ".genome/30_SELECTION.md" "SELECTION-CHANGE"
 `;
   fs.writeFileSync(hookPath, hook, { mode: 0o755 });
   console.log('✓  Cortex pre-commit hook installed at .git/hooks/pre-commit');
@@ -198,12 +203,6 @@ function map() {
     console.log('\n' + group.label);
     for (const c of concepts) {
       const bar = buildBar(c.score);
-      const threshold = group.filter({ criticality: 'GENOTYPE' })
-        ? policy.genotype
-        : group.filter({ criticality: 'SELECTION' })
-          ? policy.selection
-          : policy.neutral;
-
       const status = c.criticality === 'SHADOW'
         ? '🚫 BLOCKED'
         : c.score < (group.label.includes('GENOTYPE') ? policy.genotype : group.label.includes('SELECTION') ? policy.selection : policy.neutral)

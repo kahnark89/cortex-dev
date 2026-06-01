@@ -82,3 +82,23 @@
 **Rationale:** Identical to animus-sdk decision. npm `"files": ["dist/"]` includes everything in `dist/` regardless of `.npmignore`. Separating test compilation keeps the published tarball clean.
 
 **Author:** claude/cortex-animus-repos-eV8MC
+
+---
+
+## [2026-06-01] Pre-commit hook: per-file change tags, not a single shared tag
+
+**Decision:** `hookInstall()` generates a shell hook that checks `GENOTYPE-CHANGE` for `00_GENOTYPE.md` and `SELECTION-CHANGE` for `30_SELECTION.md` independently, rather than accepting `GENOTYPE-CHANGE` as a universal pass for both protected files.
+
+**Rationale:** `00_GENOTYPE.md §4` states "Any commit touching these files must include `GENOTYPE-CHANGE:` or `SELECTION-CHANGE:` in the message." The prior hook accepted `GENOTYPE-CHANGE` for the SELECTION file, which allowed SELECTION modifications to bypass the intended `SELECTION-CHANGE` governance signal. Each tag has semantic meaning — using the wrong tag obscures what kind of protected change was made.
+
+**Author:** claude/project-onboarding-XAXWx
+
+---
+
+## [2026-06-01] Remove dead shadow-entry block from `runCheck()`
+
+**Decision:** Removed the empty `if (shadowEntries.length > 0 && ...)` block from `src/check.ts`, along with the `extractShadowEntries` import, `shadowPath`, `shadowMd`, and `shadowEntries` variables that only fed it.
+
+**Rationale:** SHADOW blocking is fully handled by the `case 'SHADOW':` branch in the main concept loop — any SHADOW-criticality entry in the confidence store unconditionally pushes an error violation. The secondary block added after the loop was a no-op (empty body with a comment "Already added above") and imported dead surface area from `concepts.ts`. Removing it makes the invariant ("SHADOW always blocks") easier to see and audit in a single place.
+
+**Author:** claude/project-onboarding-XAXWx

@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "tsc -p tsconfig.test.json && node --test .dist-test/__tests__/confidence.test.js .dist-test/__tests__/concepts.test.js .dist-test/__tests__/check.test.js",
+    "test": "tsc -p tsconfig.test.json && node --test '.dist-test/__tests__/*.test.js'",
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [

@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ConfidenceDB, ConceptEntry } from './confidence';
-import { extractPolicy, extractShadowEntries } from './concepts';
+import { extractPolicy } from './concepts';
 
 export interface CheckViolation {
   level: 'error' | 'warning';
@@ -27,18 +27,12 @@ export function runCheck(cwd: string, _prNumber?: number): CheckResult {
   const cortexDir  = path.join(cwd, '.cortex');
 
   const selectionPath = path.join(genomeDir, '30_SELECTION.md');
-  const shadowPath    = path.join(genomeDir, '40_SHADOW.md');
 
   const selectionMd = fs.existsSync(selectionPath)
     ? fs.readFileSync(selectionPath, 'utf8')
     : '';
 
-  const shadowMd = fs.existsSync(shadowPath)
-    ? fs.readFileSync(shadowPath, 'utf8')
-    : '';
-
   const policy = extractPolicy(selectionMd);
-  const shadowEntries = extractShadowEntries(shadowMd);
 
   const db = new ConfidenceDB(path.join(cortexDir, 'confidence.json'));
   const store = db.load();
@@ -89,11 +83,6 @@ export function runCheck(cwd: string, _prNumber?: number): CheckResult {
         }
         break;
     }
-  }
-
-  // Always block if any shadow entries exist and shadow concepts were touched
-  if (shadowEntries.length > 0 && violations.some((v) => v.level === 'error' && v.concept)) {
-    // Already added above
   }
 
   const errors = violations.filter((v) => v.level === 'error');

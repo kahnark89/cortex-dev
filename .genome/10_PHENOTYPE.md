@@ -1,7 +1,7 @@
 # 10_PHENOTYPE — cortex-dev (live state)
 
 > High-churn file. Any session updates this freely.
-> **Last touched:** 2026-06-01 by claude/project-onboarding-9LqKa
+> **Last touched:** 2026-06-01 by claude/project-onboarding-XAXWx
 > **Pending ratification:** none
 
 ---
@@ -36,6 +36,7 @@ v0.1.0 is built and pushed to GitHub. Next step is npm publication and real-worl
 - The `context_distance` in GroundLine upsert is currently hardcoded at `0.5` in the watcher. A future version could compute real Jensen-Shannon divergence between structural fingerprints of application sites.
 - Should `cortex since <range>` also filter EPIGENOME entries (not just confidence store)?
 - IDE extension (VS Code / Cursor) planned but not yet started — would consume `cortex context` JSON.
+- **[GENOTYPE-CHANGE proposal]** `ConceptEntry` schema in `00_GENOTYPE.md §5` omits `file: string`, but the field is present throughout the code and is required for `cortex concept <path>` lookups and per-file display. Propose adding `file: string` after `concept: string` in the published schema. Awaiting architect sign-off.
 
 ---
 
