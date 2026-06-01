@@ -38,7 +38,12 @@ export function buildContext(cwd: string): CortexContextBundle {
   const shadowPath     = path.join(genomeDir, '40_SHADOW.md');
   const selectionPath  = path.join(genomeDir, '30_SELECTION.md');
 
-  const phenotypeMd = fs.existsSync(phenotypePath) ? fs.readFileSync(phenotypePath, 'utf8') : '';
+  let phenotypeMd = '';
+  try {
+    phenotypeMd = fs.readFileSync(phenotypePath, 'utf8');
+  } catch (err: any) {
+    if (err.code !== 'ENOENT') throw err;
+  }
 
   const focus = extractFocus(phenotypeMd);
 
@@ -65,9 +70,14 @@ export function buildContext(cwd: string): CortexContextBundle {
 
 function detectAnimus(cwd: string): AnimusPresence {
   const schemaPath = path.join(cwd, 'animus', 'agent.schema.json');
-  if (!fs.existsSync(schemaPath)) return { present: false };
+  let schemaRaw: string;
+  try {
+    schemaRaw = fs.readFileSync(schemaPath, 'utf8');
+  } catch (err: any) {
+    if (err.code === 'ENOENT') return { present: false };
+    throw err;
+  }
 
-  const schemaRaw  = fs.readFileSync(schemaPath, 'utf8');
   const schemaName = (JSON.parse(schemaRaw).name as string) ?? '(unnamed)';
 
   try {

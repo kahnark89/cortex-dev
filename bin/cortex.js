@@ -13,7 +13,12 @@ const tmpl = path.join(__dirname, '..', 'templates');
 
 function readGenome(file) {
   const p = path.join(cwd, '.genome', file);
-  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+  try {
+    return fs.readFileSync(p, 'utf8');
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
 }
 
 function ensureDir(p) {
@@ -53,8 +58,14 @@ function init() {
 
   const agentsMd = path.join(cwd, 'AGENTS.md');
   const snippet  = fs.readFileSync(path.join(tmpl, 'AGENTS.md'), 'utf8');
-  if (fs.existsSync(agentsMd)) {
-    const existing = fs.readFileSync(agentsMd, 'utf8');
+  let existing = null;
+  try {
+    existing = fs.readFileSync(agentsMd, 'utf8');
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+
+  if (existing !== null) {
     if (!existing.includes('## Cortex')) {
       fs.appendFileSync(agentsMd, '\n\n' + snippet);
       console.log('  ✓  Appended Cortex section to AGENTS.md');
