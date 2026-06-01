@@ -2,6 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { readLastSeal, runVerify } from './verify';
 
 export interface AuditItem {
   file: string;
@@ -39,6 +40,8 @@ export function runAudit(cwd: string): AuditResult {
     'SELECTION is still the template — fill in your decision heuristics', items);
 
   checkShadowEntries(path.join(genomeDir, '40_SHADOW.md'), items);
+
+  checkVerification(cwd, items);
 
   const hasError = items.some((i) => i.level === 'error');
   const hasWarn  = items.some((i) => i.level === 'warn');
@@ -92,6 +95,29 @@ function checkEpigenomeEntries(filePath: string, items: AuditItem[]): void {
     });
   } else {
     items.push({ file: '20_EPIGENOME.md', level: 'pass', message: `EPIGENOME — ${count} decision${count === 1 ? '' : 's'} logged` });
+  }
+}
+
+function checkVerification(cwd: string, items: AuditItem[]): void {
+  const lastSeal = readLastSeal(cwd);
+  if (!lastSeal) {
+    items.push({ file: '.cortex/seals.jsonl', level: 'warn', message: 'No genome seal yet — run `cortex seal` to start tamper-detection' });
+    return;
+  }
+
+  const result = runVerify(cwd);
+
+  if (result.chainBreaks.length > 0) {
+    items.push({ file: '20_EPIGENOME.md', level: 'error', message: `EPIGENOME chain break — ${result.chainBreaks.length} tampered entr${result.chainBreaks.length === 1 ? 'y' : 'ies'} detected` });
+  } else if (result.chainChecked > 0) {
+    items.push({ file: '20_EPIGENOME.md', level: 'pass', message: `EPIGENOME chain — ${result.chainChecked} entr${result.chainChecked === 1 ? 'y' : 'ies'} verified ✓` });
+  }
+
+  const suspicious = result.sealDiff.filter((d) => d.status === 'suspicious');
+  if (suspicious.length > 0) {
+    items.push({ file: suspicious.map((d) => d.file).join(', '), level: 'error', message: `Suspicious changes since last seal: ${suspicious.map((d) => d.file).join(', ')}` });
+  } else if (result.hasSeal) {
+    items.push({ file: '.cortex/seals.jsonl', level: 'pass', message: 'Genome seal — no suspicious changes since last seal' });
   }
 }
 

@@ -16,3 +16,6 @@ export type { HarvestResult, HarvestEntry } from './harvest';
 
 export { buildContext } from './context';
 export type { CortexContextBundle, AnimusPresence } from './context';
+
+export { runVerify, sealGenome, readLastSeal, lastChainHash, hashEntryFields, verifyChain, sha256, GENESIS_HASH } from './verify';
+export type { VerifyResult, ChainBreak, SealRecord, SealDiff, SealFileEntry } from './verify';
