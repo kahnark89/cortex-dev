@@ -4,7 +4,6 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { runAudit } from '../audit';
-import { sealGenome } from '../verify';
 
 function makeGenome(dir: string, overrides: Record<string, string> = {}): void {
   fs.mkdirSync(path.join(dir, '.genome'), { recursive: true });
@@ -26,26 +25,13 @@ function cleanup(dir: string) { fs.rmSync(dir, { recursive: true, force: true })
 
 function tmpDir() { return path.join(os.tmpdir(), `cortex-audit-${Date.now()}`); }
 
-test('runAudit: green when all files are filled in, fresh, and sealed', () => {
+test('runAudit: green when all files are filled in and fresh', () => {
   const dir = tmpDir();
   makeGenome(dir);
-  sealGenome(dir); // seal required for green health
   try {
     const result = runAudit(dir);
     assert.strictEqual(result.health, 'green');
     assert.ok(result.items.every((i) => i.level === 'pass'));
-  } finally { cleanup(dir); }
-});
-
-test('runAudit: yellow when no seal exists', () => {
-  const dir = tmpDir();
-  makeGenome(dir);
-  try {
-    const result = runAudit(dir);
-    assert.strictEqual(result.health, 'yellow');
-    const sealItem = result.items.find((i) => i.file.includes('seals.jsonl'));
-    assert.ok(sealItem, 'Expected a seal warning item');
-    assert.strictEqual(sealItem!.level, 'warn');
   } finally { cleanup(dir); }
 });
 

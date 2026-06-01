@@ -140,3 +140,13 @@
 **Rationale:** The blockchain session itself proved the gap: it ended without updating PHENOTYPE or EPIGENOME, leaving the next session with stale genome state. Gate (2b) catches the inverse problem: an AI session that writes optimistic EPIGENOME entries claiming work is done without backing code. Both directions of drift cause the same failure mode — a future session starts with a false picture of the codebase. The badge gives the project a machine-readable signal of session governance health that can be displayed in a README.
 
 **Author:** claude/project-onboarding-XAXWx (session-gate session, 2026-06-01)
+
+---
+
+## [2026-06-01] Strip governance layer — light layer only for v0.2
+
+**Decision:** Removed `src/verify.ts`, `src/session.ts`, and all associated commands (`cortex seal`, `cortex verify`, `cortex close`) from cortex-dev. The light layer (genome files, `cortex sync`, `cortex audit`, `cortex harvest`) ships as the v0.2 product. Governance layer is deferred to a future version.
+
+**Rationale:** The governance layer solves a real but niche problem — adversarial or careless AI sessions that silently corrupt shared architectural decisions. Most developers haven't hit this pain yet; they want context persistence, not session auditing. The governance layer added friction (mandatory `cortex close` at session end), a "cooperative AI" dependency (the AI has to voluntarily run it — there's no hard enforcement on mobile/web), and significant code complexity. Shipping the light layer first maximises immediate usefulness and lets market feedback determine whether governance is worth the overhead.
+
+**Author:** claude/project-onboarding-XAXWx (user-directed, 2026-06-01)

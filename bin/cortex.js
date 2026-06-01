@@ -77,13 +77,6 @@ function init() {
     }
   }
 
-  // Create the initial genome seal so verify has a baseline
-  try {
-    const { sealGenome } = loadDist('verify');
-    sealGenome(cwd);
-    console.log('  ✓  Initial genome seal written to .cortex/seals.jsonl');
-  } catch (_) { /* non-fatal */ }
-
   console.log('\nNext steps:');
   console.log('  1. Fill in .genome/00_GENOTYPE.md  — project thesis, invariants, hard lines');
   console.log('  2. Fill in .genome/10_PHENOTYPE.md — current focus (one sentence)');
@@ -144,13 +137,6 @@ check_protected() {
 
 check_protected ".genome/00_GENOTYPE.md" "GENOTYPE-CHANGE"
 check_protected ".genome/30_SELECTION.md" "SELECTION-CHANGE"
-
-# Cortex session integrity: verify EPIGENOME chain + no suspicious changes
-if command -v cortex >/dev/null 2>&1; then
-  cortex close --check || exit 1
-elif [ -f "node_modules/.bin/cortex" ]; then
-  node_modules/.bin/cortex close --check || exit 1
-fi
 `;
   fs.writeFileSync(path.join(hooksDir, 'pre-commit'), hook, { mode: 0o755 });
   console.log('✓  Cortex pre-commit hook installed at .git/hooks/pre-commit');
@@ -218,64 +204,6 @@ function harvest() {
   }
 }
 
-function seal() {
-  const { sealGenome } = loadDist('verify');
-  const record = sealGenome(cwd);
-  const fileCount = Object.keys(record.files).length;
-  console.log('✓  Genome sealed');
-  console.log(`   root:  ${record.root}`);
-  console.log(`   files: ${fileCount} fingerprinted`);
-  console.log(`   time:  ${new Date(record.ts).toISOString()}`);
-}
-
-function verify() {
-  const { runVerify } = loadDist('verify');
-  const result = runVerify(cwd);
-
-  console.log('cortex verify');
-  console.log('─────────────────────────────────────────────');
-
-  if (!result.hasSeal) {
-    console.log('  ⚠   No genome seal found — run `cortex seal` to start tamper-detection');
-  } else {
-    // Chain report
-    if (result.chainChecked === 0) {
-      console.log('  ℹ   EPIGENOME — no chained entries yet (use `cortex harvest --apply` to create them)');
-    } else if (result.chainValid) {
-      console.log(`  ✅  EPIGENOME chain — ${result.chainChecked} entr${result.chainChecked === 1 ? 'y' : 'ies'} verified`);
-    } else {
-      for (const b of result.chainBreaks) {
-        console.log(`  🔴  Chain break: ${b.entry}`);
-        console.log(`       expected: ${b.expected}`);
-        console.log(`       stored:   ${b.got}`);
-      }
-    }
-
-    // Seal diff report
-    if (result.sealMatch) {
-      console.log('  ✅  Genome state matches last seal');
-    } else {
-      for (const d of result.sealDiff) {
-        const icon = d.status === 'suspicious' ? '🔴' : d.status === 'appended' ? '✅' : '  ℹ';
-        const label = d.status === 'suspicious' ? 'modified outside cortex (suspicious)' : d.status;
-        console.log(`  ${icon}  ${d.file} — ${label}`);
-      }
-    }
-
-    if (!result.chainValid || result.sealDiff.some((d) => d.status === 'suspicious')) {
-      console.log('  🔴  No protected files changed outside cortex operations — FAIL');
-    } else {
-      console.log('  ✅  No suspicious changes detected');
-    }
-  }
-
-  console.log('─────────────────────────────────────────────');
-  const healthIcon = result.health === 'green' ? '✅' : result.health === 'yellow' ? '⚠ ' : '🔴';
-  console.log(`Chain integrity: ${healthIcon} ${result.health}`);
-
-  if (result.health === 'red') process.exitCode = 1;
-}
-
 function check() {
   const { runCheck, formatCheckResult } = loadDist('check');
   const result = runCheck(cwd);
@@ -289,35 +217,6 @@ function context() {
   console.log(JSON.stringify(bundle, null, 2));
 }
 
-function close() {
-  const checkOnly = process.argv.includes('--check');
-  const { runClose } = loadDist('session');
-  const result = runClose(cwd, { checkOnly });
-
-  console.log('cortex close');
-  console.log('─────────────────────────────────────────────');
-  for (const gate of result.gates) {
-    const icon = gate.passed ? '  ✅' : '  🔴';
-    console.log(`${icon}  ${gate.message}`);
-  }
-  console.log('─────────────────────────────────────────────');
-
-  if (result.passed) {
-    if (checkOnly) {
-      console.log('Integrity check passed ✅');
-    } else {
-      console.log('Session sealed ✅');
-      console.log('  badge: .cortex/badge.json');
-    }
-  } else {
-    const label = checkOnly
-      ? 'Integrity check FAILED'
-      : 'Session NOT sealed — fix the above issues first';
-    console.log(`${label} 🔴`);
-    process.exitCode = 1;
-  }
-}
-
 // ── dispatch ───────────────────────────────────────────────────────────────
 
 if      (cmd === 'init')                       init();
@@ -328,11 +227,8 @@ else if (cmd === 'hook' && arg === 'install')  hookInstall();
 else if (cmd === 'audit')                      audit();
 else if (cmd === 'sync')                       syncCmd();
 else if (cmd === 'harvest')                    harvest();
-else if (cmd === 'seal')                       seal();
-else if (cmd === 'verify')                     verify();
 else if (cmd === 'check')                      check();
 else if (cmd === 'context')                    context();
-else if (cmd === 'close')                      close();
 else {
   console.log('cortex-dev CLI\n');
   console.log('Usage:');
@@ -343,10 +239,6 @@ else {
   console.log('  cortex sync                    push genome into CLAUDE.md, .cursorrules, copilot-instructions');
   console.log('  cortex harvest [--since <range>] [--apply]');
   console.log('                                 find decision commits and optionally append to EPIGENOME');
-  console.log('  cortex seal                    fingerprint genome state (blockchain-style session boundary)');
-  console.log('  cortex verify                  verify EPIGENOME hash chain + genome seal integrity');
-  console.log('  cortex close [--check]         session-end gate: PHENOTYPE fresh + drift check + seal + badge');
-  console.log('                                 --check runs only integrity gates (used by pre-commit hook)');
   console.log('  cortex check                   CI gate — pass/fail on governance checks');
   console.log('  cortex log                     epigenome (decision history)');
   console.log('  cortex shadow                  rejected paths');

@@ -30,21 +30,3 @@ This project uses [cortex-dev](https://github.com/kahnark89/cortex-dev) for AI c
 
 At the start of each session, state the current focus from PHENOTYPE §1 back to the architect. If you cannot state it correctly, the genome needs tightening — the failure is in the genome, not in you.
 
-### Session close (mandatory)
-
-Before ending a session, run:
-
-```
-npx cortex-dev close
-```
-
-This enforces four gates automatically:
-
-1. **PHENOTYPE freshness** — PHENOTYPE §1 must be updated to reflect the session's outcome
-2. **Code → genome drift** — if code files changed, EPIGENOME must have new entries documenting why
-3. **Genome → code drift** — if EPIGENOME has new entries, code must have changed to back them up (prevents false claims that mislead future sessions)
-4. **Chain integrity** — EPIGENOME hash chain must be intact; no protected files changed without proper tags
-
-**If any gate fails, fix what it describes and re-run `npx cortex-dev close`.** Do not end the session until it exits 0. On pass, it automatically seals the genome and writes `.cortex/badge.json`.
-
-The pre-commit hook (installed by `npx cortex-dev hook install`) also runs gates 3 and 4 on every commit automatically.

@@ -3,7 +3,6 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { hashEntryFields, lastChainHash, sealGenome } from './verify';
 
 export interface HarvestEntry {
   hash: string;
@@ -25,7 +24,6 @@ export function runHarvest(cwd: string, since = '30d', apply = false): HarvestRe
   const entries = findDecisionCommits(cwd, since);
   if (apply && entries.length > 0) {
     appendToEpigenome(cwd, entries);
-    sealGenome(cwd); // seal genome state after every apply
     return { entries, applied: true };
   }
   return { entries, applied: false };
@@ -84,7 +82,6 @@ function appendToEpigenome(cwd: string, entries: HarvestEntry[]): void {
     .map((line) => { const n = line.match(/E(\d+)/); return n ? parseInt(n[1], 10) : 0; });
   let next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
 
-  let prevHash = lastChainHash(existing);
   let append = '\n';
 
   for (const e of entries) {
@@ -92,14 +89,10 @@ function appendToEpigenome(cwd: string, entries: HarvestEntry[]): void {
     const cleanSubject = e.subject.replace(DECISION_RE, '');
     const today = new Date().toISOString().split('T')[0];
 
-    // Hash = f(prevHash, id, subject, commitHash, date) — whitespace-agnostic
-    const entryHash = hashEntryFields(prevHash, id, cleanSubject, e.hash, e.date);
-
     append += `### ${id} — ${cleanSubject}\n\n`;
-    append += `> Harvested: ${today} | Commit: ${e.hash} | Author: ${e.author} | Date: ${e.date} | Prev-hash: ${prevHash} | Hash: ${entryHash}\n\n`;
+    append += `> Harvested: ${today} | Commit: ${e.hash} | Author: ${e.author} | Date: ${e.date}\n\n`;
     if (e.body) append += `${e.body}\n\n`;
 
-    prevHash = entryHash;
     next++;
   }
 

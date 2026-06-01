@@ -39,20 +39,9 @@ npm test        # rm -rf .dist-test && tsc -p tsconfig.test.json && node --test
 - **Mark inferred reasoning** as `(hypothesis — UNCONFIRMED)` in epigenome entries.
 - **Update PHENOTYPE** §1 to reflect the session's outcome before closing.
 
-## Session close (mandatory)
-```
-node bin/cortex.js close
-```
+## Session end
 
-> Note: use `node bin/cortex.js` not `npx cortex-dev` — this repo runs the local dev version, not the published package.
-
-This enforces four gates automatically:
-1. **PHENOTYPE freshness** — §1 must reflect the session's outcome
-2. **Code → genome drift** — if code changed, EPIGENOME must have new entries
-3. **Genome → code drift** — if EPIGENOME grew, code must have also changed (prevents false claims)
-4. **Chain integrity** — EPIGENOME hash chain intact; no protected files changed outside cortex
-
-**If any gate fails, fix what it describes and re-run.** Do not end the session until it exits 0. On pass, it seals the genome and writes `.cortex/badge.json`.
+Before finishing, update `.genome/10_PHENOTYPE.md` §1 to reflect the new state, and append any significant architectural decisions to `.genome/20_EPIGENOME.md`.
 
 ## The five genome files (reference)
 | File | Role | Mutation |
