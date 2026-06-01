@@ -183,16 +183,16 @@ function map() {
   }
 
   const policy = getPolicy();
-  const showAll = arg !== '--critical';
+  const criticalOnly = arg === '--critical';
 
   console.log('Cortex comprehension map');
   console.log('─────────────────────────────────────────────');
 
   const groups = [
     { label: `GENOTYPE concepts (block < ${policy.genotype}):`, filter: c => c.criticality === 'GENOTYPE' },
-    { label: `SELECTION concepts (review < ${policy.selection}):`, filter: c => c.criticality === 'SELECTION' },
   ];
-  if (showAll) {
+  if (!criticalOnly) {
+    groups.push({ label: `SELECTION concepts (review < ${policy.selection}):`, filter: c => c.criticality === 'SELECTION' });
     groups.push({ label: `Neutral concepts (flag < ${policy.neutral}):`, filter: c => c.criticality === 'neutral' });
   }
 
