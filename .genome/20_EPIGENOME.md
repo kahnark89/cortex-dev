@@ -150,3 +150,13 @@
 **Rationale:** The governance layer solves a real but niche problem — adversarial or careless AI sessions that silently corrupt shared architectural decisions. Most developers haven't hit this pain yet; they want context persistence, not session auditing. The governance layer added friction (mandatory `cortex close` at session end), a "cooperative AI" dependency (the AI has to voluntarily run it — there's no hard enforcement on mobile/web), and significant code complexity. Shipping the light layer first maximises immediate usefulness and lets market feedback determine whether governance is worth the overhead.
 
 **Author:** claude/project-onboarding-XAXWx (user-directed, 2026-06-01)
+
+## [2026-06-01] Optimize fs operations & harvest performance
+
+**Decision:**
+1. Replaced `fs.existsSync(path) ? fs.readFileSync(path) : ...` checks throughout the codebase with a single `try/catch` block handling `ENOENT`.
+2. Modified `cortex harvest` to use `git log --name-only` to directly read modified files in one go instead of invoking `git diff-tree` per commit.
+
+**Rationale:** The previous pattern of `fs.existsSync` immediately followed by `fs.readFileSync` forces the Node process to do two blocking I/O calls instead of one. Using `try/catch` gracefully deals with non-existent files at half the I/O cost. In `harvest.ts`, spawning a separate `git diff-tree` child process for each commit was an O(N) performance cliff for projects with long commit histories. Processing everything in a single `git log` command scales much better.
+
+**Author:** jules (performance-optimization session)

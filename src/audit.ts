@@ -48,11 +48,17 @@ export function runAudit(cwd: string): AuditResult {
 }
 
 function checkFilled(filePath: string, file: string, errorMsg: string, items: AuditItem[]): void {
-  if (!fs.existsSync(filePath)) {
-    items.push({ file, level: 'error', message: `${file} not found` });
-    return;
+  let content: string;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
+      items.push({ file, level: 'error', message: `${file} not found` });
+      return;
+    }
+    throw err;
   }
-  const content = fs.readFileSync(filePath, 'utf8');
+
   if (content.includes(TEMPLATE_PLACEHOLDER)) {
     items.push({ file, level: 'error', message: errorMsg });
   } else {
@@ -61,11 +67,17 @@ function checkFilled(filePath: string, file: string, errorMsg: string, items: Au
 }
 
 function checkFreshness(filePath: string, file: string, items: AuditItem[]): void {
-  if (!fs.existsSync(filePath)) {
-    items.push({ file, level: 'error', message: `${file} not found` });
-    return;
+  let stat;
+  try {
+    stat = fs.statSync(filePath);
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
+      items.push({ file, level: 'error', message: `${file} not found` });
+      return;
+    }
+    throw err;
   }
-  const stat = fs.statSync(filePath);
+
   const ageDays = (Date.now() - stat.mtimeMs) / (1000 * 60 * 60 * 24);
   if (ageDays > STALE_DAYS) {
     const d = Math.floor(ageDays);
@@ -78,11 +90,17 @@ function checkFreshness(filePath: string, file: string, items: AuditItem[]): voi
 }
 
 function checkEpigenomeEntries(filePath: string, items: AuditItem[]): void {
-  if (!fs.existsSync(filePath)) {
-    items.push({ file: '20_EPIGENOME.md', level: 'error', message: '20_EPIGENOME.md not found' });
-    return;
+  let content: string;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
+      items.push({ file: '20_EPIGENOME.md', level: 'error', message: '20_EPIGENOME.md not found' });
+      return;
+    }
+    throw err;
   }
-  const content = fs.readFileSync(filePath, 'utf8');
+
   // Matches: ## [2026-...  /  ### E001  /  ### 01  (entry-style headings, not plain prose headings)
   const count = (content.match(/^#{2,3}\s+(?:\[|\d|E\d)/gm) || []).length;
   if (count === 0) {
@@ -97,11 +115,17 @@ function checkEpigenomeEntries(filePath: string, items: AuditItem[]): void {
 
 
 function checkShadowEntries(filePath: string, items: AuditItem[]): void {
-  if (!fs.existsSync(filePath)) {
-    items.push({ file: '40_SHADOW.md', level: 'error', message: '40_SHADOW.md not found' });
-    return;
+  let content: string;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
+      items.push({ file: '40_SHADOW.md', level: 'error', message: '40_SHADOW.md not found' });
+      return;
+    }
+    throw err;
   }
-  const content = fs.readFileSync(filePath, 'utf8');
+
   const count = (content.match(/^#{2,3}\s+Shadow/gmi) || []).length;
   if (count === 0) {
     items.push({ file: '40_SHADOW.md', level: 'warn', message: 'SHADOW has no rejected approaches documented yet' });

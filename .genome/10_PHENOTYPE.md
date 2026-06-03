@@ -1,13 +1,13 @@
 # 10_PHENOTYPE — cortex-dev (live state)
 
 > High-churn file. Any session updates this freely.
-> **Last touched:** 2026-06-01 by claude/project-onboarding-XAXWx (governance-strip session)
+> **Last touched:** 2026-06-01 by claude/project-onboarding-XAXWx (performance-optimization session)
 
 ---
 
 ## §1 Current focus
 
-Light layer only: genome files, `sync`, `audit`, `harvest`. Governance layer (seal/verify/close) stripped and deferred. Ready for npm publish.
+Optimized file I/O operations (using `try/catch` wrappers instead of `fs.existsSync` to avoid double reads) and eliminated O(N) child process spawns in `cortex harvest`. The codebase is optimized and ready for npm publish.
 
 ---
 

@@ -39,7 +39,7 @@ function findDecisionCommits(cwd: string, since: string): HarvestEntry[] {
   let raw: string;
   try {
     raw = execSync(
-      `git log --after="${sinceStr}" --format="%H%n%ad%n%an%n%s%n%b%n---END---" --date=short`,
+      `git log --after="${sinceStr}" --format="%H%n%ad%n%an%n%s%n%b%n---FILES---" --name-only --date=short`,
       { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
     );
   } catch {
@@ -47,30 +47,26 @@ function findDecisionCommits(cwd: string, since: string): HarvestEntry[] {
   }
 
   const entries: HarvestEntry[] = [];
-  for (const block of raw.split('---END---')) {
+  const blocks = raw.split(/(?=^[a-f0-9]{40}\n)/m); // Split by commit hash
+
+  for (const block of blocks) {
     const trimmed = block.trim();
     if (!trimmed) continue;
-    const lines = trimmed.split('\n');
-    if (lines.length < 4) continue;
-    const [hash, date, author, subject, ...rest] = lines;
-    const body = rest.join('\n').trim();
 
-    if (DECISION_RE.test(subject) || touchesGenome(cwd, hash)) {
+    // Split into commit info and files
+    const parts = trimmed.split('\n---FILES---\n');
+    const infoLines = parts[0].split('\n');
+
+    if (infoLines.length < 4) continue;
+    const [hash, date, author, subject, ...rest] = infoLines;
+    const body = rest.join('\n').trim();
+    const files = parts[1] || '';
+
+    if (DECISION_RE.test(subject) || files.includes('.genome/')) {
       entries.push({ hash: hash.slice(0, 8), date, author, subject, body });
     }
   }
   return entries;
-}
-
-function touchesGenome(cwd: string, hash: string): boolean {
-  try {
-    const out = execSync(`git diff-tree --no-commit-id -r --name-only ${hash}`, {
-      cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    return out.includes('.genome/');
-  } catch {
-    return false;
-  }
 }
 
 function appendToEpigenome(cwd: string, entries: HarvestEntry[]): void {
