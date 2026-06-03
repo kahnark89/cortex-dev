@@ -23,14 +23,17 @@ Optimized file I/O operations (using `try/catch` wrappers instead of `fs.existsS
 - [x] `templates/AGENTS.md` — session-start protocol (no governance close)
 - [x] `package.json` test script cleans `.dist-test/` before compile
 - [x] ~31 tests passing (`npm test`)
+- [x] Ratify GENOTYPE-CHANGE: update `CortexContextBundle` schema in `00_GENOTYPE.md §5` to version 2
+- [x] Bump version to `0.2.0`, tag `v0.2.0`, push to trigger publish
+- [ ] Add `NPM_TOKEN` secret to GitHub repo settings
 - [ ] `npm publish` — package live on npmjs.com as `cortex-dev`
 - [ ] Smoke test: `npm install -g cortex-dev` in throwaway dir
+- [ ] Dog-food on a real project to validate `cortex harvest` and `cortex audit` feel
 
 ---
 
 ## §3 Open questions
 
-- **[GENOTYPE-CHANGE proposal]** `CortexContextBundle` in `00_GENOTYPE.md §5` references `version: 1` and the `comprehension` field. After the v0.2 pivot, the bundle is `version: 2` with an `audit` field instead. Propose updating the schema in §5 to reflect the new shape. Awaiting architect sign-off.
 - `cortex harvest` currently scans 30d by default — should this be configurable in a `cortex.config.json`?
 - IDE extension (VS Code / Cursor) — would call `cortex context` and inject into AI session on workspace open.
 - Should `cortex sync` also write a `GEMINI.md` / `.aider.conf.yml` for other AI tools?
@@ -40,11 +43,10 @@ Optimized file I/O operations (using `try/catch` wrappers instead of `fs.existsS
 
 ## §4 Next actions
 
-1. Ratify GENOTYPE-CHANGE: update `CortexContextBundle` schema in `00_GENOTYPE.md §5` to version 2
-2. Add `NPM_TOKEN` secret to GitHub repo settings
-3. Bump version to `0.2.0`, tag `v0.2.0`, push to trigger publish
-4. Smoke test: `npm install -g cortex-dev`, `cortex init`, `cortex sync`
-5. Dog-food on a real project to validate `cortex harvest` and `cortex audit` feel
+1. Add `NPM_TOKEN` secret to GitHub repo settings
+2. Push to trigger `npm publish` via GitHub Actions
+3. Smoke test: `npm install -g cortex-dev`, `cortex init`, `cortex sync`
+4. Dog-food on a real project to validate `cortex harvest` and `cortex audit` feel
 
 ---
 

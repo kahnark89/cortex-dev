@@ -56,10 +56,10 @@ cortex-dev is an AI collaboration governance layer that solves two compounding f
 **`CortexContextBundle` shape (published stdout interface):**
 ```typescript
 {
-  version: 1;
+  version: 2;
   generatedAt: number;       // epoch ms
   genome: { focus, openQuestions, hasGenotype, hasEpigenome, hasShadow, hasSelection };
-  comprehension: { riskConcepts, criticalConcepts, totalConcepts, overallHealth };
+  audit: { health: 'green' | 'yellow' | 'red', items: AuditItem[] };
   animus: { present, moodLine?, schemaName? };
 }
 ```

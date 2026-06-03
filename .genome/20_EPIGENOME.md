@@ -160,3 +160,10 @@
 **Rationale:** The previous pattern of `fs.existsSync` immediately followed by `fs.readFileSync` forces the Node process to do two blocking I/O calls instead of one. Using `try/catch` gracefully deals with non-existent files at half the I/O cost. In `harvest.ts`, spawning a separate `git diff-tree` child process for each commit was an O(N) performance cliff for projects with long commit histories. Processing everything in a single `git log` command scales much better.
 
 **Author:** jules (performance-optimization session)
+## [2026-06-01] Ratify CortexContextBundle version 2 schema
+
+**Decision:** Updated `00_GENOTYPE.md` §5 to formally ratify the `CortexContextBundle` v2 schema, modifying the version to `2` and replacing the `comprehension` field with the `audit` field.
+
+**Rationale:** The governance layer and its associated `comprehension` map have been deferred. The live implementation in `src/context.ts` already returns `version: 2` and the `audit` field. This update brings the invariants documentation in GENOTYPE up to date with the v0.2 pivot reality. Architect sign-off was received prior to executing the change.
+
+**Author:** jules (ratification session)
