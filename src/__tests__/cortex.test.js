@@ -15,7 +15,7 @@ function sh(dir, cmd) { return cp.execSync(cmd, { cwd: dir, encoding: 'utf8' });
 
 function freshRepo() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cortex-'));
-  sh(dir, 'git init -q && git config user.email t@t && git config user.name t');
+  sh(dir, 'git init -q && git config user.email t@t && git config user.name t && git config commit.gpgsign false');
   run(dir, ['init']);
   // map a concept + make it GENOTYPE-critical by mentioning it in GENOTYPE
   fs.writeFileSync(path.join(dir, '.cortex', 'concepts.json'), JSON.stringify({
@@ -147,4 +147,54 @@ test('policy block in SELECTION.md overrides defaults', () => {
   sh(dir, 'git add billing/x.js');
   const r = run(dir, ['check']);
   assert.match(r.stdout, /Below review threshold 0.99/, r.stdout);
+});
+
+test('fresh init reports zero forbidden zones (template example is not a live zone)', () => {
+  const dir = freshRepo();
+  // The SHADOW template ships a **Forbidden:** line inside its format example.
+  // It must not be parsed as a real zone — only entries below the marker count.
+  let r = run(dir, ['status']);
+  assert.match(r.stdout, /forbidden zones: 0/, r.stdout);
+  r = run(dir, ['shadow']);
+  assert.doesNotMatch(r.stdout, /⛔/, 'no active forbidden zones should be listed from the example');
+
+  // A real entry added below the marker is still picked up.
+  fs.appendFileSync(path.join(dir, '.genome', '40_SHADOW.md'),
+    '\n### Shadow S01 — bad idea\n**Why rejected:** nope\n**Forbidden:** legacy/auth\n');
+  r = run(dir, ['status']);
+  assert.match(r.stdout, /forbidden zones: 1/, r.stdout);
+});
+
+test('status shows current focus once §1 is filled (blank line under heading tolerated)', () => {
+  const dir = freshRepo();
+  const pheno = path.join(dir, '.genome', '10_PHENOTYPE.md');
+  // Unfilled template → friendly "not set yet", never a cryptic §1 error.
+  let r = run(dir, ['status']);
+  assert.match(r.stdout, /Current focus: not set yet/, r.stdout);
+  assert.doesNotMatch(r.stdout, /not found/, r.stdout);
+  // Fill §1 the way a user would, keeping the template's blank line.
+  fs.writeFileSync(pheno,
+    fs.readFileSync(pheno, 'utf8').replace('*One sentence. What are we doing right now?*',
+      'Ship the v2 billing migration.'));
+  r = run(dir, ['status']);
+  assert.match(r.stdout, /Current focus: Ship the v2 billing migration\./, r.stdout);
+});
+
+test('unknown command fails loudly; --version and --help behave', () => {
+  const dir = freshRepo();
+  let r = run(dir, ['chekc']); // typo
+  assert.strictEqual(r.status, 1, 'unknown command must exit non-zero');
+  assert.match(r.stderr, /unknown command "chekc"/, r.stderr);
+
+  r = run(dir, ['--version']);
+  assert.strictEqual(r.status, 0);
+  assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+/, 'prints semver: ' + r.stdout);
+
+  r = run(dir, ['--help']);
+  assert.strictEqual(r.status, 0);
+  assert.match(r.stdout, /Usage:/);
+
+  r = run(dir, []); // bare invocation is help, not an error
+  assert.strictEqual(r.status, 0);
+  assert.match(r.stdout, /Usage:/);
 });
