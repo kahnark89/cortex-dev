@@ -1,36 +1,28 @@
 {
   "name": "cortex-dev",
-  "version": "0.2.0",
-  "description": "AI collaboration governance layer — session coherence + comprehension depth",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
+  "version": "0.3.0",
+  "description": "Pre-merge trust layer for AI-written code \u2014 project memory (Genome Protocol) + evidence-based comprehension tracking (GroundLine) enforced as a PR gate.",
   "bin": {
     "cortex": "./bin/cortex.js"
   },
   "scripts": {
-    "build": "tsc",
-    "test": "rm -rf .dist-test && tsc -p tsconfig.test.json && node --test '.dist-test/__tests__/*.test.js'",
-    "prepublishOnly": "npm run build && npm test"
+    "test": "node --test src/__tests__/cortex.test.js"
   },
   "keywords": [
     "ai",
     "agents",
-    "governance",
-    "context",
-    "llm",
-    "cursor",
-    "claude",
-    "copilot",
+    "code-review",
+    "pr-gate",
+    "ci",
+    "trust",
     "agents-md",
-    "session-coherence"
+    "claude",
+    "cursor",
+    "copilot",
+    "context",
+    "session-coherence",
+    "ai-governance",
+    "merge-policy"
   ],
   "author": "Capps Consulting Company LLC",
   "license": "MIT",
@@ -39,11 +31,16 @@
   },
   "files": [
     "bin/",
-    "dist/",
-    "templates/"
+    "templates/",
+    "LICENSE",
+    "src/"
   ],
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^6.0.3"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kahnark89/cortex-dev.git"
+  },
+  "homepage": "https://github.com/kahnark89/cortex-dev#readme",
+  "bugs": {
+    "url": "https://github.com/kahnark89/cortex-dev/issues"
   }
 }
