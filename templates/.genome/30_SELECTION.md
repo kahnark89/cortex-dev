@@ -30,6 +30,12 @@ SHADOW concepts:    block always; architect override required
 Neutral concepts:   auto-merge if confidence > 0.75 and tests pass
 ```
 
+*Machine-readable form — `cortex check` and `cortex record` parse this block (delete a key to keep its default):*
+
+```cortex-policy
+{ "auto_merge": 0.70, "review": 0.40, "critical_block": 0.60, "gain": 0.25, "fail_decay": 0.6 }
+```
+
 ---
 
 ## §3 Review Triggers

@@ -13,6 +13,7 @@
 **Proposed:** [what was considered]
 **Why rejected:** [the specific reason it was ruled out — be precise]
 **Constraint:** [what a future session must not do without re-opening this decision]
+**Forbidden:** [optional — comma-separated path substrings or globs; `cortex check` blocks any PR touching them, e.g. `auth/oauth-pkce, src/billing/*.legacy.ts`]
 ```
 
 ---

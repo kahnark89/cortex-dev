@@ -1,47 +1,25 @@
 # AGENTS.md — cortex-dev
 
 ## What this repo is
-A Node.js CLI tool that installs Cortex genome governance into any project. Uses the same five-file genome protocol on itself as a live dog-food example.
-
-## Session start — load in order
-
-**Always load:**
-1. This file (AGENTS.md)
-2. `.genome/00_GENOTYPE.md` — architecture invariants, hard lines (protected — do not modify)
-3. `.genome/10_PHENOTYPE.md` — current focus, acceptance criteria, open questions (update freely)
-
-**Load when the task touches *why* something is designed as it is:**
-4. `.genome/20_EPIGENOME.md` — append-only decision log
-5. `.genome/40_SHADOW.md` — rejected paths and forbidden zones
-
-**Load when making a judgment call without explicit direction:**
-6. `.genome/30_SELECTION.md` — architect's decision heuristics
-
-After reading, state the current focus from PHENOTYPE §1 back to the architect before starting work.
+A Node.js CLI tool that bootstraps and maintains Cortex — the unified AI collaboration governance layer combining the Genome Protocol (session coherence) with GroundLine (comprehension depth tracking).
 
 ## Repo structure
-- `bin/cortex.js` — CLI entry point (all cortex commands, CommonJS, zero deps)
-- `src/` — TypeScript source: `audit`, `check`, `concepts`, `context`, `harvest`, `index`, `session`, `sync`, `verify`
-- `src/__tests__/` — test suite (67 tests)
-- `dist/` — compiled CommonJS output (`npm run build`)
-- `templates/.genome/` — five genome template files copied by `cortex init`
-- `templates/AGENTS.md` — AGENTS.md template injected into user projects by `cortex init`
+- `bin/cortex.js` — the entire CLI, single file, sectioned: [io] [policy] [groundline math] [shadow] [commands] [dispatch]. Make targeted edits inside the relevant section; do not split into modules without architect sign-off (single-file is a deliberate token-cost choice for AI editing).
+- `templates/.genome/` — the five Genome template files copied by `cortex init`
+- `templates/AGENTS.md` — the AGENTS.md template injected into user projects
+- `src/__tests__/cortex.test.js` — end-to-end tests; each test runs the CLI in a throwaway git repo
 
-## Build and test
-```bash
-npm run build   # tsc → dist/
-npm test        # rm -rf .dist-test && tsc -p tsconfig.test.json && node --test
-```
+## Core invariants (do not change without architect sign-off)
+1. **`templates/.genome/00_GENOTYPE.md` and `templates/.genome/30_SELECTION.md` define the protected files.** The guard is a **commit-msg** hook (never pre-commit: pre-commit fires before the message exists, so the tag could never be honored and a stale COMMIT_EDITMSG would silently unlock protected files). It blocks staged modifications to these files unless the live commit message carries a GENOTYPE-CHANGE tag.
+2. **The epigenome is append-only.** The CLI must never modify or delete existing entries — only append new ones.
+3. **The shadow file defines forbidden zones.** Any concept matching a SHADOW entry must be flagged as a violation, not a low-confidence warning.
+4. **Policy is parsed live from the ```cortex-policy``` block(s) in `SELECTION.md`** — later blocks override earlier ones per key. There is no compiled policy file; never introduce one that can drift from SELECTION.
+5. **GroundLine evidence (`.cortex/confidence.json`) is CLI-owned.** Sessions write it only via `cortex record`, never by hand.
 
-## Session rules
-- **Never modify** `.genome/00_GENOTYPE.md` or `.genome/30_SELECTION.md` without explicit architect sign-off. Propose changes in PHENOTYPE §3 instead.
-- **Append only** to `.genome/20_EPIGENOME.md` and `.genome/40_SHADOW.md`. Never edit existing entries.
-- **Mark inferred reasoning** as `(hypothesis — UNCONFIRMED)` in epigenome entries.
-- **Update PHENOTYPE** §1 to reflect the session's outcome before closing.
-
-## Session end
-
-Before finishing, update `.genome/10_PHENOTYPE.md` §1 to reflect the new state, and append any significant architectural decisions to `.genome/20_EPIGENOME.md`.
+## Development conventions
+- Plain CommonJS JavaScript, zero runtime dependencies, no build step
+- Template files are plain markdown — keep them readable by humans and AI clients alike
+- Tests: `npm test` (node --test). Every command must keep an end-to-end test that exercises it through a real git repo.
 
 ## The five genome files (reference)
 | File | Role | Mutation |

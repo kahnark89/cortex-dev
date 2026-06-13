@@ -25,8 +25,9 @@ This project uses [cortex-dev](https://github.com/kahnark89/cortex-dev) for AI c
 - **Append only** to `.genome/20_EPIGENOME.md` and `.genome/40_SHADOW.md`. Never edit existing entries.
 - **Mark inferred reasoning** as `(hypothesis — UNCONFIRMED)` in epigenome entries. Do not assert inferred reasoning as stated fact.
 - **Update PHENOTYPE** at the end of each session to reflect the new current state.
+- **Feed GroundLine.** After applying a mapped concept (see `.cortex/concepts.json`), run `cortex record <concept> <file>` — add `--fail` if it broke in tests or review. This is how the comprehension map earns its evidence; skip it and the merge gate stays blind.
+- **Gate before you propose a merge.** Run `cortex check` on your staged work. Exit 2 means a shadow forbidden zone — stop and surface it to the architect, never work around it. Exit 1 means a critical concept needs human review.
 
 ### Coherence check
 
 At the start of each session, state the current focus from PHENOTYPE §1 back to the architect. If you cannot state it correctly, the genome needs tightening — the failure is in the genome, not in you.
-
