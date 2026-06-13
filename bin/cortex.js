@@ -95,11 +95,18 @@ function conceptsForFile(file) {
 
 // ── [shadow] ────────────────────────────────────────────────────────────────
 // Forbidden zones: "**Forbidden:** pat1, pat2" lines inside shadow entries.
+// Only real entries count — everything below the template's sentinel marker,
+// and never anything inside a ``` fence (the format example above the marker
+// carries a sample **Forbidden:** line that must not become a live zone).
 function forbiddenZones() {
   const sh = readGenome('40_SHADOW.md');
   if (!sh) return [];
-  const zones = []; let id = '(shadow)', reason = '';
-  for (const line of sh.split('\n')) {
+  const marker = sh.indexOf('Add entries below this line');
+  const body = marker !== -1 ? sh.slice(sh.indexOf('\n', marker) + 1) : sh;
+  const zones = []; let id = '(shadow)', reason = '', inFence = false;
+  for (const line of body.split('\n')) {
+    if (/^\s*```/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) continue;
     const head = line.match(/^###\s+Shadow\s+(\S+)\s*[—-]?\s*(.*)/i);
     if (head) { id = head[1]; reason = head[2]; continue; }
     const why = line.match(/^\*\*Why rejected:\*\*\s*(.+)/i);
@@ -323,11 +330,26 @@ function since() {
   if (!any) console.log('No recorded applications in this window.');
 }
 
+// First real line under §1 — tolerant of the blank line and the italic prompt
+// the template ships with, so a freshly-filled PHENOTYPE actually shows here.
+function currentFocus(phenotype) {
+  const sec = phenotype.match(/##\s*§1[^\n]*\n([\s\S]*?)(?=\n##\s|\n---|$)/);
+  if (!sec) return null;
+  for (const raw of sec[1].split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('>') || line.startsWith('<!--')) continue;
+    const plain = line.replace(/^[*_\s]+|[*_\s]+$/g, '').trim();
+    if (!plain || /^one sentence\b/i.test(plain)) continue; // still the placeholder
+    return plain;
+  }
+  return null;
+}
+
 function status() {
   const phenotype = readGenome('10_PHENOTYPE.md');
   if (!phenotype) { console.log('No .genome/ found. Run: cortex init'); process.exit(1); }
-  const fm = phenotype.match(/##\s*§1[^\n]*\n([^\n#]+)/);
-  console.log(`Current focus: ${fm ? fm[1].trim() : '(§1 Current focus not found in PHENOTYPE)'}`);
+  const focus = currentFocus(phenotype);
+  console.log(`Current focus: ${focus || 'not set yet — edit .genome/10_PHENOTYPE.md (§1)'}`);
 
   const P = policy();
   const db = confidence().concepts;
@@ -364,8 +386,28 @@ function shadow_() {
 }
 
 // ── [dispatch] ──────────────────────────────────────────────────────────────
+function version() { try { return require('../package.json').version; } catch (e) { return '?'; } }
+
+function usage(out = console.log) {
+  out(`cortex-dev v${version()} — pre-merge trust layer for AI-written code\n`);
+  out('Usage:');
+  out('  cortex init                       bootstrap .genome/ + .cortex/ in current project');
+  out('  cortex hook install               install commit-msg guard for protected genome files');
+  out('  cortex status [--risk]            phenotype focus + risk summary');
+  out('  cortex log                        epigenome (decisions + GroundLine auto-entries)');
+  out('  cortex shadow                     rejected paths + active forbidden zones');
+  out('  cortex map [--critical]           comprehension map (GENOTYPE-class only with --critical)');
+  out('  cortex concept <name>             grounding history + epigenome mentions for one concept');
+  out('  cortex since <N>d                 comprehension activity in the last N days');
+  out('  cortex record <concept> <file>    record a concept application  [--fail] [--note "..."]');
+  out('  cortex check [--pr <n>]           gate: shadow violations + confidence (exit 2/1/0)');
+  out('\n  cortex --help                     show this help');
+  out('  cortex --version                  print version');
+}
+
 if (cmd === 'init') init();
 else if (cmd === 'hook' && argv[1] === 'install') hookInstall();
+else if (cmd === 'hook') { console.error('Usage: cortex hook install'); process.exit(1); }
 else if (cmd === 'status') status();
 else if (cmd === 'log') log_();
 else if (cmd === 'shadow') shadow_();
@@ -374,17 +416,11 @@ else if (cmd === 'concept') conceptCmd();
 else if (cmd === 'since') since();
 else if (cmd === 'record') record();
 else if (cmd === 'check') check();
+else if (cmd === '--version' || cmd === '-v' || cmd === 'version') console.log(version());
+else if (!cmd || cmd === '--help' || cmd === '-h' || cmd === 'help') usage();
 else {
-  console.log('cortex-dev CLI\n');
-  console.log('Usage:');
-  console.log('  cortex init                       bootstrap .genome/ + .cortex/ in current project');
-  console.log('  cortex hook install               install commit-msg guard for protected genome files');
-  console.log('  cortex status [--risk]            phenotype focus + risk summary');
-  console.log('  cortex log                        epigenome (decisions + GroundLine auto-entries)');
-  console.log('  cortex shadow                     rejected paths + active forbidden zones');
-  console.log('  cortex map [--critical]           comprehension map (GENOTYPE-class only with --critical)');
-  console.log('  cortex concept <name>             grounding history + epigenome mentions for one concept');
-  console.log('  cortex since <N>d                 comprehension activity in the last N days');
-  console.log('  cortex record <concept> <file>    record a concept application  [--fail] [--note "..."]');
-  console.log('  cortex check [--pr <n>]           gate: shadow violations + confidence (exit 2/1/0)');
+  // A typo must fail loudly — a silently-ignored command in CI is a no-op gate.
+  console.error(`cortex: unknown command "${cmd}"\n`);
+  usage(console.error);
+  process.exit(1);
 }
